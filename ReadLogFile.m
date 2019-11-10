@@ -1,21 +1,5 @@
 function [Acc,Gyr,Magn,Gnss,Wifi,AccX,GyrX]=ReadLogFile(filename,ver,idx_fig)
 
-% Leer y visualiza los datos grabados en un log_file creado con la App android GetSensorData
-%
-% INPUT:
-%   filename:    Nombre del fichero texto
-%   ver:         Controla los graficos y datos de salida que nos interesan para la práctica. Opciones: 'smartphone', 'Xsens', 'full'(default)
-%   idx_fig:     indice de la figura a partir de la cual abrir figuras
-% OUTPUT:
-%   Acc,Gyr    Acceleration and angular rate of smartphone sensors (ACCE and GYRO lines) [nx4] 4: 3 axis +timestamp 
-%   AccX,GyrX  Acceleration and angular rate of external Xsens sensor (IMUX lines) [nx4]  4: 3 axis + timestamp 
-%
-%  use example :  
-%    > [Acce,Gyro,AcceX,GyroX]=ReadLogFile('\log_files\logfile3_UAH_S4.txt');
-%    > [Acce,Gyro,~]=ReadLogFile('\log_files\logfile3_UAH_S4.txt','smartphone');
-%    > [~,~,AcceX,GyroX]=ReadLogFile('\log_files\logfile3_UAH_S4.txt','Xsens');
-
-
 % Read and view the recorded data in a log_file created with the GetSensorData Android App
 %
 % INPUT:
@@ -32,7 +16,7 @@ function [Acc,Gyr,Magn,Gnss,Wifi,AccX,GyrX]=ReadLogFile(filename,ver,idx_fig)
 %> [~, ~, AcceX, GyroX] = ReadLogFile ('\ log_files \ logfile3_UAH_S4.txt', 'Xsens');
 
 if ~exist('ver','var')
-     % if does not exist, so put default value
+     % if does not exist, put default value
       ver='full';
 end
 
@@ -42,30 +26,21 @@ if ~exist('idx_fig','var')
 end
 
 %==============================================
-% Definir el fichero a leer y leerlo:
 % Define the file to read and read it:
 %==============================================
-
-% Abrir fichero y volcar contenido en "datos_fichero"
-% Open file and dump content in "data_file"
+% Open file and dump content in "datos_fichero"
 
 fid = fopen(filename);
-datos_fichero=fread(fid);  % leo el fichero y lo cargo todo en datos
-			   % I read the file and load it all in data
-posfinlineas=find(datos_fichero==10);  % busco saltos de linea (10 = LF(LineFeed),  13=CR(Carrige Return))
-					% search line breaks (10 = LF (Line Feed), 13 = CR (Carriage Return))
+datos_fichero=fread(fid);  % I read the file and load it all in data
+posfinlineas=find(datos_fichero==10);  % search line breaks (10 = LF (Line Feed), 13 = CR (Carriage Return))
 posfinlineas=[0; posfinlineas]; %
-numlineas=length(posfinlineas)-1; % numero de lineas en fichero
-				  % number of lines in file
+numlineas=length(posfinlineas)-1; % number of lines in file
 disp(['Number of lines in logfile: ',num2str(numlineas)]);
 
 %==============================================
-% Parsear los datos y Grabarlos en un .mat
 % Parse the data and save it in a .mat
 %==============================================
-idx_linea=0;  % reseteo el indice de la linea del fichero
-% Reservar memoria
-% reset the file line index
+idx_linea=0; % reset the file line index
 % Reserve memory
 Posi=ones(numlineas,6)*NaN; index_Posi=1;
 Acce=ones(numlineas,6)*NaN; index_Acce=1;
@@ -77,15 +52,13 @@ Prox=ones(numlineas,4)*NaN; index_Prox=1;
 Soun=ones(numlineas,4)*NaN; index_Soun=1;
 Ahrs=ones(numlineas,9)*NaN; index_Ahrs=1;
 Gnss=ones(numlineas,10)*NaN; index_Gnss=1;
-Rfid=ones(numlineas,5)*NaN; index_Rfid=1;% datos RFID con 5 columas: 1)time stamp, 2) id_reader, 3) id_tag, 4) RSS1  y RSS2
-					 % RFID data with 5 columns: 1) time stamp, 2) id_reader, 3) id_tag, 4) RSS1 and RSS2
+Rfid=ones(numlineas,5)*NaN; index_Rfid=1; % RFID data with 5 columns: 1) time stamp, 2) id_reader, 3) id_tag, 4) RSS1 and RSS2
 Wifi=ones(numlineas,4)*NaN; index_Wifi=1;
 Imul=ones(numlineas,21)*NaN; index_Imul=1;
 Imux=ones(numlineas,21)*NaN; index_Imux=1;
 
 eof=false;  datos=[];  tipo='';
 while (~eof)
-    % Leer una medida %[tipo,datos,eof]=obj.getSiguienteMedida();
     % Read a measure% [type, data, eof] = obj.getNextMeasurement ();
     linea_con_medida=false; %line_with_measurement
     while (~linea_con_medida && ~eof)
@@ -234,7 +207,6 @@ while (~eof)
     if eof
         break
     end
-    % Almacenar el tipo de medida en la matriz corrrespondiente:
     % Store the type of measurement in the corresponding matrix:
     if strcmp(tipo,'POSI')
         Posi(index_Posi,1:6)=datos;   index_Posi=index_Posi+1;
@@ -279,7 +251,7 @@ while (~eof)
         Imux(index_Imux,1:21)=datos;   index_Imux=index_Imux+1;
     end
 end
-% Recortar arrays datos
+
 % Trim data arrays
 Posi=Posi(1:index_Posi-1,:);
 Acce=Acce(1:index_Acce-1,:);
@@ -296,12 +268,10 @@ Wifi=Wifi(1:index_Wifi-1,:);
 Imul=Imul(1:index_Imul-1,:);
 Imux=Imux(1:index_Imux-1,:);
 
-% grabar en .mat
 % record in .mat
 save([filename(1:end-4),'.mat'],'Posi','Acce','Gyro','Magn','Pres','Ligh','Prox','Soun','Ahrs','Gnss','Rfid','Wifi','Imul','Imux');
 
 %==============================================
-% Prepara salida sencilla para practica: [nx4]  timestamp, axis1, axis2, axis3
 % Prepare simple output for practice: [nx4] timestamp, axis1, axis2, axis3
 %==============================================
 Acc=[]; Gyr=[];
@@ -318,7 +288,6 @@ end
 
 
 %==============================================
-% Visualizarlos
 % Display them
 %==============================================
 
