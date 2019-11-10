@@ -284,6 +284,9 @@ end
 if (strcmp(ver,'full') || strcmp(ver,'smartphone'))
    Acc=Acce(:,[3:5,2]);  Acc(:,4)=Acc(:,4)-Acce(1,2);  % Acc data
    Gyr=Gyro(:,[3:5,2]);  Gyr(:,4)=Gyr(:,4)-Gyro(1,2);  % Gyr data 
+
+   Acc = dataset({Acc 'Acc_x','Acc_y','Acc_z','ST'});
+   Gyr = dataset({Gyr 'Gyr_x','Gyr_y','Gyr_z','ST'});
 end
 
 

@@ -26,8 +26,6 @@ disp('Reading Logfile...');% fflush(stdout);
 [Acc,Gyr,~,~]=ReadLogFile('.\log_files\Around living room carpet logfile_2019_10_06_11_31_51.txt','smartphone',1); %ON HAND %(2 loops + 1 loop lateral/backwards)
 % [Acc,Gyr,Magn,Gnss,Wifi,~,~]=ReadLogFile('.\log_files\library_campaign.txt','smartphone',1);
 
-Acc = dataset({Acc 'Acc_x','Acc_y','Acc_z','ST'});
-Gyr = dataset({Gyr 'Gyr_x','Gyr_y','Gyr_z','ST'});
 disp('Logfile Read...');%fflush(stdout);
 disp('-> TO DO: Inspect IMU signals and bias (press enter to continue)');%fflush(stdout);
 % pause;
