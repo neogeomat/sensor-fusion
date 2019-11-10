@@ -23,8 +23,8 @@ disp('1) Load real data with smart-phone IMU and inspect');% fflush(stdout);
 disp('Reading Logfile...');% fflush(stdout);
 % load IMU read data: Acc,Gyr de Xsens (3 loops)
 %[~,~,Acc,Gyr]=ReadLogFile('.\log_files\logfile_3loops_1lateralbackwards.txt','Xsens',1); %ON FOOT %(2 loops + 1 loop lateral/backwards)
-[Acc,Gyr,~,~]=ReadLogFile('.\log_files\Around living room carpet logfile_2019_10_06_11_31_51.txt','smartphone',1); %ON HAND %(2 loops + 1 loop lateral/backwards)
-% [Acc,Gyr,Magn,Gnss,Wifi,~,~]=ReadLogFile('.\log_files\library_campaign.txt','smartphone',1);
+% [Acc,Gyr,~,~]=ReadLogFile('.\log_files\Around living room carpet logfile_2019_10_06_11_31_51.txt','smartphone',1); %ON HAND %(2 loops + 1 loop lateral/backwards)
+[Acc,Gyr,Magn,Gnss,Wifi,~,~]=ReadLogFile('.\log_files\library_last_day_collection.txt','smartphone',1);
 
 disp('Logfile Read...');%fflush(stdout);
 disp('-> TO DO: Inspect IMU signals and bias (press enter to continue)');%fflush(stdout);
@@ -37,7 +37,7 @@ disp('-> TO DO: Inspect IMU signals and bias (press enter to continue)');%fflush
 %        -Position estimation while walking lateral/backwards
 fprintf('\n2) Apply SL+theta PDR algorithm and analyse rsults\n');%fflush(stdout);
 % Remove bias Gyro
-samples=84;  % asumo 50 segundos parado (y fs=100 Hz)
+samples=100;  % asumo 50 segundos parado (y fs=100 Hz)
 % I assume 50 seconds stopped (and fs=100 Hz)
 % bias_Gyr=[mean(Gyr(1:samples,1)), mean(Gyr(1:samples,2)), mean(Gyrs(1:samples,3))];
 bias_Gyr=[mean(double(Gyr.Gyr_x(1:samples))), mean(double(Gyr.Gyr_y(1:samples))), mean(double(Gyr.Gyr_z(1:samples)))];
