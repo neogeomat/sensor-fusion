@@ -54,6 +54,7 @@ Ahrs=ones(numlineas,9)*NaN; index_Ahrs=1;
 Gnss=ones(numlineas,10)*NaN; index_Gnss=1;
 Rfid=ones(numlineas,5)*NaN; index_Rfid=1; % RFID data with 5 columns: 1) time stamp, 2) id_reader, 3) id_tag, 4) RSS1 and RSS2
 Wifi=ones(numlineas,4)*NaN; index_Wifi=1;
+Ble4=ones(numlineas,4)*NaN; index_Ble4=1;
 Imul=ones(numlineas,21)*NaN; index_Imul=1;
 Imux=ones(numlineas,21)*NaN; index_Imux=1;
 
@@ -87,6 +88,7 @@ while (~eof)
             % GNSS/GPS data:        'GNSS;AppTimestamp(s);SensorTimeStamp(s);Latit(º);Long(º);Altitude(m);Bearing(º);Accuracy(m);Speed(m/s);SatInView;SatInUse'
             % WIFI data:          	'WIFI;AppTimestamp(s);SensorTimeStamp(s);Name_SSID;MAC_BSSID;RSS(dBm);'
             % Bluetooth data:     	'BLUE;AppTimestamp(s);Name;MAC_Address;RSS(dBm);'
+            % BLE 4.0 data:       	'BLE4;AppTimestamp(s);iBeacon;MAC;RSSI(dBm);Power;MajorID;MinorID;UUID'
             % Sound data:         	'SOUN;AppTimestamp(s);RMS;Pressure(Pa);SPL(dB);'
             % RFID Reader data:   	'RFID;AppTimestamp(s);ReaderNumber(int);TagID(int);RSS_A(dBm);RSS_B(dBm);'
             % IMU XSens data:     	'IMUX;AppTimestamp(s);SensorTimestamp(s);Counter;Acc_X(m/s^2);Acc_Y(m/s^2);Acc_Z(m/s^2);Gyr_X(rad/s);Gyr_Y(rad/s);Gyr_Z(rad/s);Mag_X(uT);;Mag_Y(uT);Mag_Z(uT);Roll(Âº);Pitch(Âº);Yaw(Âº);Pressure(mbar);Temp(ÂºC)'
@@ -156,6 +158,23 @@ while (~eof)
 						% It is an RFID line. eg: "RFID; 22,365; 29; 67937; 80; 80"
                     datos=sscanf(linea,'%*4s;%f;%f;%f;%f;%f')';
                     tipo='RFID';
+                end
+                if ( strfind(linea,'BLE4'))  % Es una linea de BLE4. 
+                 % Formato BLE 4.0 data:                   
+                 %    'BLE4;AppTimestamp(s);iBeacon;MAC;RSSI(dBm);Power;MajorID;MinorID;UUID'
+                 %    'BLE4;AppTimestamp(s);Eddystone;MAC;RSSI(dBm);instanceID;OptionalTelemetry[voltaje;temperature;uptime;count]
+                 % p.ej.: "BLE4;0.110;Eddystone;E5:A3:7B:5D:3E:9A;-69;201600000010;5961;17.0;20194;13520600"
+                 %        "BLE4;0.125;iBeacon;FF:E4:62:05:A6:94;-73;-76;2016;15;b9407f30-f5f8-466e-aff9-25556b57fe6d"
+                    cell_array=textscan(linea,'%*s %f %s %s %f','delimiter',';');
+                    datos(1)=cell_array{1,1}(1); % timestamp
+                    Beacon_type_str=cell_array{1,2}{1,1}; % Beacon type
+                    datos(4)=cell_array{1,4}(1); % RSS
+                    MAC_str=cell_array{1,3}{1,1}; % MAC
+                    if strcmp(Beacon_type_str,'iBeacon'), datos(2)=1; else   datos(2)=2; end
+                    MAC_dec_array=sscanf(MAC_str,'%x:%x:%x:%x:%x:%x'); % quitar ":" y convertir a numero
+                    MAC_dec=MAC_dec_array(1)*256^5+MAC_dec_array(2)*256^4+MAC_dec_array(3)*256^3+MAC_dec_array(4)*256^2+MAC_dec_array(5)*256+MAC_dec_array(6);
+                    datos(3)=MAC_dec;
+                    tipo='BLE4';
                 end
                 if ( strfind(linea,'WIFI'))  % Es una linea de WIFI.
                     % Formato nuevo WIFI data: 'WIFI;AppTimestamp(s);SensorTimeStamp(s);Name_SSID;MAC_BSSID;RSS(dBm);'
@@ -241,6 +260,9 @@ while (~eof)
     if strcmp(tipo,'RFID')
         Rfid(index_Rfid,1:5)=datos;   index_Rfid=index_Rfid+1;
     end
+    if strcmp(tipo,'BLE4')
+        Ble4(index_Ble4,1:4)=datos;   index_Ble4=index_Ble4+1;
+    end
     if strcmp(tipo,'WIFI')
         Wifi(index_Wifi,1:4)=datos;   index_Wifi=index_Wifi+1;
     end
@@ -264,12 +286,13 @@ Soun=Soun(1:index_Soun-1,:);
 Ahrs=Ahrs(1:index_Ahrs-1,:);
 Gnss=Gnss(1:index_Gnss-1,:);
 Rfid=Rfid(1:index_Rfid-1,:);
+Ble4=Ble4(1:index_Ble4-1,:);
 Wifi=Wifi(1:index_Wifi-1,:);
 Imul=Imul(1:index_Imul-1,:);
 Imux=Imux(1:index_Imux-1,:);
 
 % record in .mat
-save([filename(1:end-4),'.mat'],'Posi','Acce','Gyro','Magn','Pres','Ligh','Prox','Soun','Ahrs','Gnss','Rfid','Wifi','Imul','Imux');
+save([filename(1:end-4),'.mat'],'Posi','Acce','Gyro','Magn','Pres','Ligh','Prox','Soun','Ahrs','Gnss','Rfid','Ble4','Wifi','Imul','Imux');
 
 %==============================================
 % Prepare simple output for practice: [nx4] timestamp, axis1, axis2, axis3
@@ -395,7 +418,16 @@ if ~isempty(Wifi)  && strcmp(ver,'full')
     title(['Wifi, Freq.: ',num2str(size(Wifi,1)/Wifi(end,1)),' Hz'])
     legend({'Wifi'});
 end
-
+if ~isempty(Ble4)
+    figure(idx_fig); idx_fig=idx_fig+1; set(gcf,'Color',[1 1 1]);
+    Ble4_idx_Eddystone=find(Ble4(:,2)==2); % Eddystone
+    Ble4_idx_iBeacon=find(Ble4(:,2)==1); % iBeacon
+    plot(Ble4(Ble4_idx_Eddystone,1),Ble4(Ble4_idx_Eddystone,4),'b.','MarkerSize',10); hold on;
+    plot(Ble4(Ble4_idx_iBeacon,1),Ble4(Ble4_idx_iBeacon,4),'r.','MarkerSize',10);
+    xlabel('time(s)'); ylabel('RSS (dBm)'); hold off;
+    title(['Ble4, Freq.: ',num2str(size(Ble4,1)/Ble4(end,1),'%.1f'),' Hz, Different iBeacons: ',num2str(length(unique(Ble4(Ble4_idx_iBeacon,3)))),' Eddy: ',num2str(length(unique(Ble4(Ble4_idx_Eddystone,3))))]);
+    legend({'Ble4-EddyStone','Ble4-iBeacon'});
+end
 if ~isempty(Rfid)  % datos RFID con 4 columas: 1)time stamp, 2) id_reader*10, 3) id_tag, 4) RSS (los RSS estan desagragados en "procesa_linea")
     tag_id=186478;
     rss_min=40;  % para axis
