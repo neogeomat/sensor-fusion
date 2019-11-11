@@ -1,4 +1,4 @@
-function [Acc,Gyr,Magn,Gnss,Wifi,AccX,GyrX]=ReadLogFile(filename,ver,idx_fig)
+function [Acc,Gyr,Ble4,Gnss,Wifi,AccX,GyrX]=ReadLogFile(filename,ver,idx_fig)
 
 % Read and view the recorded data in a log_file created with the GetSensorData Android App
 %
@@ -54,7 +54,8 @@ Ahrs=ones(numlineas,9)*NaN; index_Ahrs=1;
 Gnss=ones(numlineas,10)*NaN; index_Gnss=1;
 Rfid=ones(numlineas,5)*NaN; index_Rfid=1; % RFID data with 5 columns: 1) time stamp, 2) id_reader, 3) id_tag, 4) RSS1 and RSS2
 Wifi=ones(numlineas,4)*NaN; index_Wifi=1;
-Ble4=ones(numlineas,4)*NaN; index_Ble4=1;
+% Ble4=ones(numlineas,8)*NaN; 
+index_Ble4=1;
 Imul=ones(numlineas,21)*NaN; index_Imul=1;
 Imux=ones(numlineas,21)*NaN; index_Imux=1;
 
@@ -166,14 +167,23 @@ while (~eof)
                  % p.ej.: "BLE4;0.110;Eddystone;E5:A3:7B:5D:3E:9A;-69;201600000010;5961;17.0;20194;13520600"
                  %        "BLE4;0.125;iBeacon;FF:E4:62:05:A6:94;-73;-76;2016;15;b9407f30-f5f8-466e-aff9-25556b57fe6d"
                     cell_array=textscan(linea,'%*s %f %s %s %f','delimiter',';');
-                    datos(1)=cell_array{1,1}(1); % timestamp
-                    Beacon_type_str=cell_array{1,2}{1,1}; % Beacon type
-                    datos(4)=cell_array{1,4}(1); % RSS
-                    MAC_str=cell_array{1,3}{1,1}; % MAC
-                    if strcmp(Beacon_type_str,'iBeacon'), datos(2)=1; else   datos(2)=2; end
-                    MAC_dec_array=sscanf(MAC_str,'%x:%x:%x:%x:%x:%x'); % quitar ":" y convertir a numero
-                    MAC_dec=MAC_dec_array(1)*256^5+MAC_dec_array(2)*256^4+MAC_dec_array(3)*256^3+MAC_dec_array(4)*256^2+MAC_dec_array(5)*256+MAC_dec_array(6);
-                    datos(3)=MAC_dec;
+%                     datos(1)=cell_array{1,1}(1); % timestamp
+                    datos.timestamp=cell_array{1,1}(1); % timestamp
+%                     Beacon_type_str=cell_array{1,2}{1,1}; % Beacon type
+                    datos.Beacon_type=cell_array{1,2}{1,1}; % Beacon type
+%                     datos(4)=cell_array{1,4}(1); % RSS
+                    datos.RSS=cell_array{1,4}(1); % RSS
+%                     MAC_str=cell_array{1,3}{1,1}; % MAC
+                    datos.MAC_str=cell_array{1,3}{1,1}; % MAC
+%                     if strcmp(Beacon_type_str,'iBeacon'), datos(2)=1; else   datos(2)=2; end
+%                     MAC_dec_array=sscanf(MAC_str,'%x:%x:%x:%x:%x:%x'); % quitar ":" y convertir a numero
+%                     MAC_dec=MAC_dec_array(1)*256^5+MAC_dec_array(2)*256^4+MAC_dec_array(3)*256^3+MAC_dec_array(4)*256^2+MAC_dec_array(5)*256+MAC_dec_array(6);
+%                     datos(3)=MAC_dec;
+%                     datos(6)=cell_array{1,1}(2); % MajorID
+                    datos.MajorID=cell_array{1,1}(2); % MajorID
+%                     datos(7)=str2double(cell_array{1,2}{2,1}); % MinorID
+                    datos.MinorID=str2double(cell_array{1,2}{2,1}); % MinorID
+                    datos.UUID=cell_array{1,3}{2,1}; % UUID
                     tipo='BLE4';
                 end
                 if ( strfind(linea,'WIFI'))  % Es una linea de WIFI.
@@ -261,7 +271,9 @@ while (~eof)
         Rfid(index_Rfid,1:5)=datos;   index_Rfid=index_Rfid+1;
     end
     if strcmp(tipo,'BLE4')
-        Ble4(index_Ble4,1:4)=datos;   index_Ble4=index_Ble4+1;
+%         Ble4(index_Ble4,1:4)=datos;   index_Ble4=index_Ble4+1;
+%         Ble4 = dataset({Ble4 'AppTimestamp','Beacon_type','MAC','RSS'})
+        Ble4(index_Ble4,:) = struct2dataset(datos); index_Ble4=index_Ble4+1;
     end
     if strcmp(tipo,'WIFI')
         Wifi(index_Wifi,1:4)=datos;   index_Wifi=index_Wifi+1;
@@ -420,12 +432,14 @@ if ~isempty(Wifi)  && strcmp(ver,'full')
 end
 if ~isempty(Ble4)
     figure(idx_fig); idx_fig=idx_fig+1; set(gcf,'Color',[1 1 1]);
-    Ble4_idx_Eddystone=find(Ble4(:,2)==2); % Eddystone
-    Ble4_idx_iBeacon=find(Ble4(:,2)==1); % iBeacon
-    plot(Ble4(Ble4_idx_Eddystone,1),Ble4(Ble4_idx_Eddystone,4),'b.','MarkerSize',10); hold on;
-    plot(Ble4(Ble4_idx_iBeacon,1),Ble4(Ble4_idx_iBeacon,4),'r.','MarkerSize',10);
+%     Ble4_idx_Eddystone=find(double(Ble4(:,2))==2); % Eddystone
+    Ble4_idx_Eddystone=find(strcmp(Ble4.Beacon_type,"Eddystone")); % Eddystone1
+%     Ble4_idx_iBeacon=find(double(Ble4(:,2))==1); % iBeacon
+    Ble4_idx_iBeacon=find(strcmp(Ble4.Beacon_type,"iBeacon")); % iBeacon
+    plot(Ble4.timestamp(Ble4_idx_Eddystone),Ble4.RSS(Ble4_idx_Eddystone),'b.','MarkerSize',10); hold on;
+    plot(Ble4.timestamp(Ble4_idx_iBeacon),Ble4.RSS(Ble4_idx_iBeacon),'r.','MarkerSize',10);
     xlabel('time(s)'); ylabel('RSS (dBm)'); hold off;
-    title(['Ble4, Freq.: ',num2str(size(Ble4,1)/Ble4(end,1),'%.1f'),' Hz, Different iBeacons: ',num2str(length(unique(Ble4(Ble4_idx_iBeacon,3)))),' Eddy: ',num2str(length(unique(Ble4(Ble4_idx_Eddystone,3))))]);
+    title(['Ble4, Freq.: ',num2str(size(Ble4,1)/double(Ble4(end,1)),'%.1f'),' Hz, Different iBeacons: ',num2str(length(unique(Ble4(Ble4_idx_iBeacon,3)))),' Eddy: ',num2str(length(unique(Ble4(Ble4_idx_Eddystone,3))))]);
     legend({'Ble4-EddyStone','Ble4-iBeacon'});
 end
 if ~isempty(Rfid)  % datos RFID con 4 columas: 1)time stamp, 2) id_reader*10, 3) id_tag, 4) RSS (los RSS estan desagragados en "procesa_linea")
