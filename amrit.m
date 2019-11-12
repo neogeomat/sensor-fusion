@@ -50,7 +50,15 @@ disp(['-> TO DO: -Check bias remove effect',...
 %............................................................................................
 % 3) Get wifi positions using k-mean
 % load training data
-
+addpath('wifi_datasets');
+data1 = csvread('wifi_datasets\tst01.csv',1,0);
+data2 = csvread('wifi_datasets\tst02.csv',1,0);
+data3 = csvread('wifi_datasets\tst03.csv',1,0);
+data4 = csvread('wifi_datasets\tst04.csv',1,0);
+data = [data1;data2;data3;data4];
+train_data.rss = data(:,1:180);
+train_data.coords = data(:,181:182);
+merged_train_data = mergedata(train_data,6);
 % convert wifi from log file to test_data
 uniqueWifiMac = unique(Wifi.MAC);
 uniqueWifiTime = unique(Wifi.timestamp);
