@@ -53,7 +53,7 @@ Soun=ones(numlineas,4)*NaN; index_Soun=1;
 Ahrs=ones(numlineas,9)*NaN; index_Ahrs=1;
 Gnss=ones(numlineas,10)*NaN; index_Gnss=1;
 Rfid=ones(numlineas,5)*NaN; index_Rfid=1; % RFID data with 5 columns: 1) time stamp, 2) id_reader, 3) id_tag, 4) RSS1 and RSS2
-Wifi=ones(numlineas,4)*NaN; index_Wifi=1;
+Wifi=ones(numlineas,5)*NaN; index_Wifi=1;
 % Ble4=ones(numlineas,8)*NaN; 
 index_Ble4=1;
 Imul=ones(numlineas,21)*NaN; index_Imul=1;
@@ -177,7 +177,7 @@ while (~eof)
                     datos.MAC_str=cell_array{1,3}{1,1}; % MAC
 %                     if strcmp(Beacon_type_str,'iBeacon'), datos(2)=1; else   datos(2)=2; end
 %                     MAC_dec_array=sscanf(MAC_str,'%x:%x:%x:%x:%x:%x'); % quitar ":" y convertir a numero
-%                     MAC_dec=MAC_dec_array(1)*256^5+MAC_dec_array(2)*256^4+MAC_dec_array(3)*256^3+MAC_dec_array(4)*256^2+MAC_dec_array(5)*256+MAC_dec_array(6);
+%                     MAC_dec = MAC_dec_array(1)*256^5 + MAC_dec_array(2)*256^4 + MAC_dec_array(3)*256^3 + MAC_dec_array(4)*256^2 + MAC_dec_array(5)*256 + MAC_dec_array(6);
 %                     datos(3)=MAC_dec;
 %                     datos(6)=cell_array{1,1}(2); % MajorID
                     datos.MajorID=cell_array{1,1}(2); % MajorID
@@ -189,12 +189,13 @@ while (~eof)
                 if ( strfind(linea,'WIFI'))  % Es una linea de WIFI.
                     % Formato nuevo WIFI data: 'WIFI;AppTimestamp(s);SensorTimeStamp(s);Name_SSID;MAC_BSSID;RSS(dBm);'
                     % p.ej.: "WIFI;22.365;8051.234;portal-csic;00:0b:86:27:36:c1;-71"
-                    % New format WIFI data: 'WIFI; AppTimestamp (s); SensorTimeStamp (s); Name_SSID; MAC_BSSID; RSS (dBm);'
+                    % New format WIFI data: 'WIFI; AppTimestamp (s); SensorTimeStamp (s); Name_SSID; MAC_BSSID; Frequency; RSS (dBm);'
                     % eg: "WIFI; 22,365; 8051,234; portal-csic; 00: 0b: 86: 27: 36: c1; -71"
-                    cell_array=textscan(linea,'%*s %f %f %*s %s %f','delimiter',';');
+                    cell_array=textscan(linea,'%*s %f %f %*s %s %f %f','delimiter',';');
                     datos(1)=cell_array{1,1}; % timestamp
                     datos(2)=cell_array{1,2}; % Sensortimestamp
-                    datos(4)=cell_array{1,4}; % RSS
+                    datos(4)=cell_array{1,4}; % Frequency
+                    datos(5)=cell_array{1,5}; % RSS
                     MAC_str=cell_array{1,3}{1,1}; % MAC
                     MAC_dec_array=sscanf(MAC_str,'%x:%x:%x:%x:%x:%x'); % quitar ":" y convertir a numero
                     MAC_dec=MAC_dec_array(1)*256^5+MAC_dec_array(2)*256^4+MAC_dec_array(3)*256^3+MAC_dec_array(4)*256^2+MAC_dec_array(5)*256+MAC_dec_array(6);
@@ -276,7 +277,7 @@ while (~eof)
         Ble4(index_Ble4,:) = struct2dataset(datos); index_Ble4=index_Ble4+1;
     end
     if strcmp(tipo,'WIFI')
-        Wifi(index_Wifi,1:4)=datos;   index_Wifi=index_Wifi+1;
+        Wifi(index_Wifi,1:5)=datos;   index_Wifi=index_Wifi+1;
     end
     if strcmp(tipo,'IMUL')
         Imul(index_Imul,1:21)=datos;   index_Imul=index_Imul+1;
@@ -317,11 +318,12 @@ if (strcmp(ver,'full') || strcmp(ver,'Xsens'))
    GyrX=Imux(:,[7:9,2]);  GyrX(:,4)=GyrX(:,4)-Imux(1,2);   % Gyr data 
 end
 if (strcmp(ver,'full') || strcmp(ver,'smartphone'))
-   Acc=Acce(:,[3:5,2]);  Acc(:,4)=Acc(:,4)-Acce(1,2);  % Acc data
-   Gyr=Gyro(:,[3:5,2]);  Gyr(:,4)=Gyr(:,4)-Gyro(1,2);  % Gyr data 
+   Acc=Acce(:,[3:5,2]);  % Acc(:,4)=Acc(:,4)-Acce(1,2);  % Acc data
+   Gyr=Gyro(:,[3:5,2]);  % Gyr(:,4)=Gyr(:,4)-Gyro(1,2);  % Gyr data 
 
    Acc = dataset({Acc 'Acc_x','Acc_y','Acc_z','ST'});
    Gyr = dataset({Gyr 'Gyr_x','Gyr_y','Gyr_z','ST'});
+   Wifi = dataset({Wifi 'timestamp','Sensortimestamp','MAC','Frequency','RSS'});
 end
 
 
