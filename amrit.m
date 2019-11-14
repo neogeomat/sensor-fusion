@@ -1,7 +1,9 @@
 clc; close all; disp('PRACTICE 3: PDR with hand-held real smartphone IMU (Samsung S4) ');
+format long g
+format compact
 %
 %........................................................................................
-% 1) Load real data with smart-phone IMU 
+%% 1) Load real data with smart-phone IMU 
 
 % Read log_file
 disp('1) Load real data with smart-phone IMU and inspect');% fflush(stdout);
@@ -16,7 +18,7 @@ disp('-> TO DO: Inspect IMU signals and bias (press enter to continue)');%fflush
 % pause;
 
 %...........................................................................................
-% 2) Apply SL+theta PDR algorithm and analyse results
+%% 2) Apply SL+theta PDR algorithm and analyse results
 %        -Check bias remove effect 
 %        -Step detection & Stride Length estimation 
 %        -Position estimation while walking lateral/backwards
@@ -48,29 +50,51 @@ disp(['-> TO DO: -Check bias remove effect',...
     '            -Position estimation while walking lateral/backwards']);%fflush(stdout);
 
 %............................................................................................
-% 3) Get wifi positions using k-mean
-% load training data
+%% 3) Get wifi positions using k-mean
+%% load training data
 addpath('wifi_datasets');
-data1 = csvread('wifi_datasets\tst01.csv',1,0);
-data2 = csvread('wifi_datasets\tst02.csv',1,0);
-data3 = csvread('wifi_datasets\tst03.csv',1,0);
-data4 = csvread('wifi_datasets\tst04.csv',1,0);
-data = [data1;data2;data3;data4];
-train_data.rss = data(:,1:180);
-train_data.coords = data(:,181:182);
-merged_train_data = mergedata(train_data,6);
-% convert wifi from log file to test_data
-uniqueWifiMac = unique(Wifi.MAC);
-uniqueWifiTime = unique(Wifi.timestamp);
-test_data = zeros(length(uniqueWifiTime),length(uniqueWifiMac));
-for w = 1:length(Wifi)
-    midx = find(uniqueWifiMac == Wifi.MAC(w));
-    tidx = find(uniqueWifiTime == Wifi.timestamp(w));
-    
-    test_data(tidx,midx) = Wifi.RSS(w);
+% data1 = csvread('wifi_datasets\tst01-mac-head.csv',1,0);
+% data2 = csvread('wifi_datasets\tst02-mac-head.csv',1,0);
+% data3 = csvread('wifi_datasets\tst03-mac-head.csv',1,0);
+% data4 = csvread('wifi_datasets\tst04-mac-head.csv',1,0);
+% data5 = csvread('wifi_datasets\tst05-mac-head.csv',1,0);
+% data = [data1;data2;data3;data4;data5];
+data = loadTrainData();
+dataTrain.rss = data(:,1:180);
+dataTrain.coords = data(:,181:183);
+dataTrainMerged = mergedata(dataTrain,6);
+
+%% convert wifi from log file to test_data
+fid = fopen('wifi_datasets\tst01-mac-head.csv');
+hdr = fgetl(fid);
+fclose(fid);
+macs = regexp(hdr,',','split');
+mac_dec = zeros(1,length(macs)-5);
+% for ap = 1:length(macs) - 5
+for mac_idx = 1:(length(macs) -5)
+    MAC_str = macs(mac_idx);
+    MAC_dec_array=sscanf(MAC_str{1,1},'%x:%x:%x:%x:%x:%x');
+    mac_dec(mac_idx) = MAC_dec_array(1)*256^5 ...
+        + MAC_dec_array(2)*256^4 ...
+        + MAC_dec_array(3)*256^3 ...
+        + MAC_dec_array(4)*256^2 ...
+        + MAC_dec_array(5)*256 ...
+        + MAC_dec_array(6);
 end
-% wifi_k_means('test_data','train_data')
 
+%%
+% uniqueWifiMac = unique(Wifi.MAC);
+wifiMacUnique = mac_dec;
+wifiTimeUnique = unique(Wifi.timestamp);
+dataTest = zeros(length(wifiTimeUnique),length(wifiMacUnique));
+for w = 1:length(Wifi)
+    midx = find(wifiMacUnique == Wifi.MAC(w));
+    tidx = find(wifiTimeUnique == Wifi.timestamp(w));
+    
+    dataTest(tidx,midx) = Wifi.RSS(w);
+end
 
-
-
+%% kNN method estimation
+knnValue = 9;    % Number of neighbors
+predictionKnn = kNNEstimation(dataTrain.rss, dataTest, dataTrain.coords, knnValue);
+plot(predictionKnn(:,1),predictionKnn(:,2))
