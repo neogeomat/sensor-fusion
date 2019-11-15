@@ -107,7 +107,7 @@ BleBeacons = sortrows(BleBeacons,4);
 %% convert wifi from log file to dataTestBle
 addpath('ble');
 Ble4 = Ble4(string(Ble4.UUID) == 'A9C04048-A71E-42B5-B569-13B5AC77B618',:); % filter readings that are from beacons deployed by us, discard other BLE sources
-window = 1; %in seconds
+window = 10; %in seconds
 dataTestBle = zeros(ceil(max(Ble4.timestamp)/window),length(BleBeacons.Minor));
 for w = 1:length(Ble4.RSS)
     midx = Ble4.MinorID(w);
@@ -118,6 +118,11 @@ end
 dataTestBle(dataTestBle == 0) = NaN;
 bcCoords = double(BleBeacons(:,[1 2]));
 predictionWC = wCEstimation(bcCoords,dataTestBle,3);
+dataTestBle_del.rss = dataTestBle;
+predictionDelaunay = delaunayEstimation_with_weight(bcCoords,dataTestBle_del,3);
+
+%% test Ble in different window sizes
+Bleplots(bcCoords,Ble4)
 %% 5) Plot different results 
 clf;
 campaign6 = csvread('wifi_datasets\campaign06.csv',1,0);
@@ -125,19 +130,24 @@ campaign6 = dataset({campaign6 'X','Y','Number','Floor'});
 campaign6.X = campaign6.X - min(campaign6.X);
 campaign6.Y = campaign6.Y - min(campaign6.Y);
 
-plot(campaign6.X,campaign6.Y);
+plot(campaign6.X,campaign6.Y,'x-');
 axis equal
 hold on
+
 positionsINS = Positions;
-plot(positionsINS(:,1),positionsINS(:,2),'g-o')
+% plot(positionsINS(:,1) + campaign6.X(1),positionsINS(:,2) + campaign6.Y(1),'g-o')
 
 adjusted_predictonKnn = predictionKnn - min(predictionKnn);
-plot(adjusted_predictonKnn(:,1),adjusted_predictonKnn(:,2),'b--o')
+% plot(adjusted_predictonKnn(:,1),adjusted_predictonKnn(:,2),'b--o')
 
 BBX = BleBeacons.X - min(BleBeacons.X);
 BBY = BleBeacons.Y - min(BleBeacons.Y);
 plot(BBX,BBY,'dg');
+
 adjusted_predictonWC = predictionWC - min(predictionWC);
 plot(adjusted_predictonWC(:,1),adjusted_predictonWC(:,2),'r--o')
-legend({'campaign6','INS Positions','Wifi Positions','BLE Positions'})
+
+adjusted_predictonDelaunay = predictionDelaunay - min(predictionDelaunay);
+plot(adjusted_predictonDelaunay(:,1),adjusted_predictonDelaunay(:,2),'k--o')
+legend({'campaign6','INS Positions','Wifi Positions','Ble beacons','BLE Positions WC','BLE Positions Delaunay'})
 
