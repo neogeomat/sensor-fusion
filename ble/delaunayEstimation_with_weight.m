@@ -90,10 +90,10 @@ function [predictionWW,nearest,ks] = delaunayEstimation_with_weight(bcCoors, dat
                if(~predictionWW(i,:)) % position might have been found in previous iterations of t
                     DT = delaunayTriangulation(qBpos(1:t,:));
                     if(DT.ConnectivityList)
-                        [k,m]=size(DT.ConnectivityList); 
+                        [e,~]=size(DT.ConnectivityList); 
                         WCTs = [];
                         % find no of Delaunay triangles formed 
-                        for o = (1:k)
+                        for o = (1:e)
                             angles = triangle_angles(DT.Points(DT.ConnectivityList(o,:),:),'d');
                             if(angles > 30 & angles < 120)
                                 WCTs = [WCTs, o];
