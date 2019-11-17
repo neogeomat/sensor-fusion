@@ -1,5 +1,5 @@
-function Bleplots(bcCoords,Ble4)
-    windows = 1:10; %in seconds
+function Bleplots(bcCoords,Ble4,truePosi)
+    windows = 4:8; %in seconds
     figure('Name','Bleplots')
     for window = windows
         
@@ -11,19 +11,24 @@ function Bleplots(bcCoords,Ble4)
             dataTestBle(tidx,midx) = Ble4.RSS(w);
         end
         dataTestBle(dataTestBle == 0) = NaN;
-%         bcCoords = double(BleBeacons(:,[1 2]));
         predictionWC = wCEstimation(bcCoords,dataTestBle,3);
         dataTestBle_del.rss = dataTestBle;
-%         predictionDelaunay = delaunayEstimation_with_weight(bcCoords,dataTestBle_del,3);
-        subplot(2,5,window)
-        axis equal
-        adjusted_predictonWC = predictionWC;
-        plot(adjusted_predictonWC(:,1),adjusted_predictonWC(:,2),'r--o')
+        predictionDelaunay = delaunayEstimation_with_weight(bcCoords,dataTestBle_del,3);
+        
+        subplot(2,3,window - windows(1) + 1)
+        
+        adjusted_predictonWC = predictionWC(~isnan(predictionWC(:,1)),:);
+        plot(adjusted_predictonWC(:,1),adjusted_predictonWC(:,2),'b--o')
         hold on
-%         adjusted_predictonDelaunay = predictionDelaunay;
-%         plot(adjusted_predictonDelaunay(:,1),adjusted_predictonDelaunay(:,2),'k--o')
+        adjusted_predictonDelaunay = predictionDelaunay(~isnan(predictionDelaunay(:,1)),:);
+        plot(adjusted_predictonDelaunay(:,1),adjusted_predictonDelaunay(:,2),'k--o');
+        hold on
+        plot(truePosi.X,truePosi.Y,'x:g');
         hold off
+        
         title(['window size ',num2str(window),' seconds']) 
         
+        axis equal
     end
+legend({'WC estimates','Delaynay Estimates','True Posi'})
 end

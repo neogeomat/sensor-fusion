@@ -97,8 +97,10 @@ function [predictionWW,nearest,ks] = delaunayEstimation_with_weight(bcCoors, dat
                             angles = triangle_angles(DT.Points(DT.ConnectivityList(o,:),:),'d');
                             if(angles > 30 & angles < 120)
                                 WCTs = [WCTs, o];
+                                if(savefig)
                                 hold on
                                 line(DT.Points(DT.ConnectivityList(o,:)',1),DT.Points(DT.ConnectivityList(o,:)',2))
+                                end
                             end
                         end
                         if(WCTs)
@@ -109,8 +111,10 @@ function [predictionWW,nearest,ks] = delaunayEstimation_with_weight(bcCoors, dat
                                 pos = [pos; (((qBpos(DT.ConnectivityList(o,:),:)')*qWs(DT.ConnectivityList(o,:))')./sum(qWs(DT.ConnectivityList(o,:))))'];
                             end
                             predictionWW(i,:) = mean(pos,1);
+                            if(savefig)
                             hold on
 %                             line([data.coords(i,1);qBpos(:,1)],[data.coords(i,2);qBpos(:,2)],'LineSTyle',':');
+                            end
                             break
                         end
                     end
