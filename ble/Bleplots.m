@@ -1,5 +1,5 @@
 function Bleplots(bcCoords,Ble4,truePosi)
-    windows = 4:8; %in seconds
+    windows = 4:7; %in seconds
     figure('Name','Bleplots')
     for window = windows
         
@@ -15,13 +15,13 @@ function Bleplots(bcCoords,Ble4,truePosi)
         dataTestBle_del.rss = dataTestBle;
         predictionDelaunay = delaunayEstimation_with_weight(bcCoords,dataTestBle_del,3);
         
-        subplot(2,3,window - windows(1) + 1)
+        subplot(2,2,window - windows(1) + 1)
         
         adjusted_predictonWC = predictionWC(~isnan(predictionWC(:,1)),:);
-        plot(adjusted_predictonWC(:,1),adjusted_predictonWC(:,2),'b--o')
+        plot(adjusted_predictonWC(:,1),adjusted_predictonWC(:,2),'b--*')
         hold on
         adjusted_predictonDelaunay = predictionDelaunay(~isnan(predictionDelaunay(:,1)),:);
-        plot(adjusted_predictonDelaunay(:,1),adjusted_predictonDelaunay(:,2),'k--o');
+        plot(adjusted_predictonDelaunay(:,1),adjusted_predictonDelaunay(:,2),'k-.+');
         hold on
         plot(truePosi.X,truePosi.Y,'x:g');
         hold off

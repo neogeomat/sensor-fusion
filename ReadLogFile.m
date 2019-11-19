@@ -1,4 +1,4 @@
-function [Acc,Gyr,Ble4,Gnss,Wifi,AccX,GyrX]=ReadLogFile(filename,ver,idx_fig)
+function [Acc,Gyr,Ble4,Gnss,Wifi,Posi,AccX,GyrX]=ReadLogFile(filename,ver,idx_fig)
 
 % Read and view the recorded data in a log_file created with the GetSensorData Android App
 %
