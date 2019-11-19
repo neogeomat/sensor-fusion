@@ -167,8 +167,8 @@ while (~eof)
                  % p.ej.: "BLE4;0.110;Eddystone;E5:A3:7B:5D:3E:9A;-69;201600000010;5961;17.0;20194;13520600"
                  %        "BLE4;0.125;iBeacon;FF:E4:62:05:A6:94;-73;-76;2016;15;b9407f30-f5f8-466e-aff9-25556b57fe6d"
                     cell_array=textscan(linea,'%*s %f %s %s %f','delimiter',';');
-%                     datos(1)=cell_array{1,1}(1); % timestamp
-                    datos.timestamp=cell_array{1,1}(1); % timestamp
+%                     datos(1)=cell_array{1,1}(1); % AppTimestamp
+                    datos.timestamp=cell_array{1,1}(1); % AppTimestamp
 %                     Beacon_type_str=cell_array{1,2}{1,1}; % Beacon type
                     datos.Beacon_type=cell_array{1,2}{1,1}; % Beacon type
 %                     datos(4)=cell_array{1,4}(1); % RSS
@@ -192,14 +192,14 @@ while (~eof)
                     % New format WIFI data: 'WIFI; AppTimestamp (s); SensorTimeStamp (s); Name_SSID; MAC_BSSID; Frequency; RSS (dBm);'
                     % eg: "WIFI; 22,365; 8051,234; portal-csic; 00: 0b: 86: 27: 36: c1; -71"
                     cell_array=textscan(linea,'%*s %f %f %*s %s %f %f','delimiter',';');
-                    datos(1)=cell_array{1,1}; % timestamp
+                    datos(1)=cell_array{1,1}; % AppTimestamp
                     datos(2)=cell_array{1,2}; % Sensortimestamp
-                    datos(4)=cell_array{1,4}; % Frequency
-                    datos(5)=cell_array{1,5}; % RSS
                     MAC_str=cell_array{1,3}{1,1}; % MAC
                     MAC_dec_array=sscanf(MAC_str,'%x:%x:%x:%x:%x:%x'); % quitar ":" y convertir a numero
                     MAC_dec=MAC_dec_array(1)*256^5+MAC_dec_array(2)*256^4+MAC_dec_array(3)*256^3+MAC_dec_array(4)*256^2+MAC_dec_array(5)*256+MAC_dec_array(6);
                     datos(3)=MAC_dec;
+                    datos(4)=cell_array{1,4}; % Frequency
+                    datos(5)=cell_array{1,5}; % RSS
                     tipo='WIFI';
                     % disp(['Linea: ',linea]);
                 end
@@ -318,12 +318,12 @@ if (strcmp(ver,'full') || strcmp(ver,'Xsens'))
    GyrX=Imux(:,[7:9,2]);  GyrX(:,4)=GyrX(:,4)-Imux(1,2);   % Gyr data 
 end
 if (strcmp(ver,'full') || strcmp(ver,'smartphone'))
-   Acc=Acce(:,[3:5,2]);  % Acc(:,4)=Acc(:,4)-Acce(1,2);  % Acc data
-   Gyr=Gyro(:,[3:5,2]);  % Gyr(:,4)=Gyr(:,4)-Gyro(1,2);  % Gyr data 
+   Acc=Acce(:,[3:5,1]);  % Acc(:,4)=Acc(:,4)-Acce(1,2);  % Acc data
+   Gyr=Gyro(:,[3:5,1]);  % Gyr(:,4)=Gyr(:,4)-Gyro(1,2);  % Gyr data 
 
-   Acc = dataset({Acc 'Acc_x','Acc_y','Acc_z','ST'});
-   Gyr = dataset({Gyr 'Gyr_x','Gyr_y','Gyr_z','ST'});
-   Wifi = dataset({Wifi 'timestamp','Sensortimestamp','MAC','Frequency','RSS'});
+   Acc = dataset({Acc 'Acc_x','Acc_y','Acc_z','AppTimestamp'});
+   Gyr = dataset({Gyr 'Gyr_x','Gyr_y','Gyr_z','AppTimestamp'});
+   Wifi = dataset({Wifi 'AppTimestamp','Sensortimestamp','MAC','Frequency','RSS'});
 end
 
 

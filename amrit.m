@@ -16,7 +16,11 @@ disp('Reading Logfile...');% fflush(stdout);
 campaign6 = csvread('wifi_datasets\campaign06.csv',1,0);
 campaign6 = dataset({campaign6 'X','Y','Number','Floor'});
 Posi = dataset({Posi 'Timestamp','Counter','X','Y','floorID','BuildingID'});
-Posi.X = campaign6.X(Posi.Counter == campaign6.Number);
+for row = Posi.Counter
+    Posi.X = campaign6.X(Posi.Counter == campaign6.Number(row));
+    Posi.Y = campaign6.Y(Posi.Counter == campaign6.Number(row));
+    Posi.floorID = campaign6.Floor(Posi.Counter == campaign6.Number(row));
+end
 disp('Logfile Read...');%fflush(stdout);
 disp('-> TO DO: Inspect IMU signals and bias (press enter to continue)');%fflush(stdout);
 % pause;
@@ -42,7 +46,7 @@ Gyr_unbiased=Gyr;  %[nx4]
 Gyr_unbiased.Gyr_x = double(Gyr.Gyr_x)-bias_Gyr(1);
 Gyr_unbiased.Gyr_y = double(Gyr.Gyr_y)-bias_Gyr(2);
 Gyr_unbiased.Gyr_z = double(Gyr.Gyr_z)-bias_Gyr(3);
-Gyr_unbiased.ST    = double(Gyr.ST);
+Gyr_unbiased.ST    = double(Gyr.AppTimestamp);
 % Apply INS to obtain Pos,Vel y Att:
 disp('Apply SL+theta PDR...');%fflush(stdout);
 %-----Step detection------
@@ -60,22 +64,14 @@ disp(['-> TO DO: -Check bias remove effect',...
     '            -Position estimation while walking lateral/backwards']);%fflush(stdout);
 
 %% plot velocity
-velocity = StrideLengths'./(Acc.ST(Step_events)-Acc.ST(1));
-plot(Acc.ST(Step_events)-Acc.ST(1),StrideLengths')
+velocity = StrideLengths'./(Acc.AppTimestamp(Step_events)-Acc.AppTimestamp(1));
+plot(Acc.AppTimestamp(Step_events)-Acc.AppTimestamp(1),StrideLengths')
 plot(velocity)
 %............................................................................................
 %% 3) Get wifi positions using k-mean
 %% load Wifi training data
 addpath('wifi_datasets');
-% data1 = csvread('wifi_datasets\tst01-mac-head.csv',1,0);
-% data2 = csvread('wifi_datasets\tst02-mac-head.csv',1,0);
-% data3 = csvread('wifi_datasets\tst03-mac-head.csv',1,0);
-% data4 = csvread('wifi_datasets\tst04-mac-head.csv',1,0);
-% data5 = csvread('wifi_datasets\tst05-mac-head.csv',1,0);
-% data = [data1;data2;data3;data4;data5];
-data = loadTrainData();
-dataTrainWifi.rss = data(:,1:180);
-dataTrainWifi.coords = data(:,[182 181 183]);
+dataTrainWifi = loadTrainData();
 dataTrainMerged = mergedata(dataTrainWifi,6);
 
 %% get list of MACs in Wifi Training Data
@@ -99,11 +95,11 @@ end
 %% convert wifi from log file to test data
 % uniqueWifiMac = unique(Wifi.MAC);
 wifiMacUnique = mac_dec;
-wifiTimeUnique = unique(Wifi.timestamp);
+wifiTimeUnique = unique(Wifi.AppTimestamp);
 dataTestWifi = zeros(length(wifiTimeUnique),length(wifiMacUnique));
 for w = 1:length(Wifi)
     midx = find(wifiMacUnique == Wifi.MAC(w));
-    tidx = find(wifiTimeUnique == Wifi.timestamp(w));
+    tidx = find(wifiTimeUnique == Wifi.AppTimestamp(w));
     
     dataTestWifi(tidx,midx) = Wifi.RSS(w);
 end
