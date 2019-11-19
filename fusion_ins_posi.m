@@ -59,20 +59,44 @@ idx_fig=200;
 [StrideLengths, Thetas, Positions,idx_fig] = Weiberg_StrideLength_Heading_Position(...
     double(Acc),double(Gyr_unbiased),Step_events,StancePhase,1,idx_fig);
 
-%% plot velocity
-velocity = StrideLengths'./(Acc.AppTimestamp(Step_events)-Acc.AppTimestamp(1));
-plot(Acc.AppTimestamp(Step_events),StrideLengths')
-xlabel('TIme');
-ylabel('Velocity');
-
 %% get timestamps from position sources
+% initialize timestamp collectors
 AppTimeStamp = []; Source = [];
 if (exist('Acc','var'))
-    AppTimeStamp = [AppTimeStamp; Acc.AppTimestamp];
-    Source = [Source; repmat({'Acce'},length(Acc.AppTimestamp),1)];
+    AppTimeStamp = [AppTimeStamp; Acc.AppTimestamp(Step_events)];
+    Source = [Source; repmat({'Acce'},length(Acc.AppTimestamp(Step_events)),1)];
 end
 if (exist('Posi','var'))
     AppTimeStamp = [AppTimeStamp; Posi.Timestamp];
     Source = [Source; repmat({'Posi'},length(Posi.Timestamp),1)];
 end
-triggers = dataset([AppTimeStamp],[Source],'VarNames',{'AppTimeStamp','Source'});
+% triggers is made up of AppTimeStamp and Source
+% AppTimeStamp: TimeStamp from GetSensorData logfile, only for position
+% providers
+% Source: Sensor which provides recording at that time
+triggers = dataset([AppTimeStamp],[Source],'VarNames',{'AppTimestamp','Source'});
+triggers_sort = sortrows(triggers,1);
+%% 3) Fusion of INS and Posi
+% Number of observations
+numobs = length(Step_events);
+
+p_hat = zeros(2, numobs); % X,V
+% xhat(:,1) = [Posi.X(1),Posi.Y(1)];
+% p_hat(:,1) = [0,0];
+p_hat(:,1) = [StrideLengths(1)*cos(Thetas(1)),StrideLengths(1)*sin(Thetas(1))];
+for k = 2:length(Acc.AppTimestamp(Step_events))
+    A = [1 0;...
+        0 1];
+    B = [StrideLengths(k) 0; ...
+        0, StrideLengths(k)];
+    U = StrideLengths(k) * [cos(Thetas(k)); sin(Thetas(k))];
+    p_hat(:,k) = A * p_hat(:,k-1) + U;
+end
+p_hat = [[0;0] p_hat];
+
+% Positions(k,1)=Positions(k-1,1)+ StrideLengths(k)*cos(Thetas(k)); % X
+% Positions(k,2)=Positions(k-1,2)+ StrideLengths(k)*sin(Thetas(k)); % Y
+clf
+plot(p_hat(1,:),p_hat(2,:))
+hold on 
+plot(Positions(:,1),Positions(:,2))
