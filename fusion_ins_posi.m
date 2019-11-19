@@ -78,21 +78,36 @@ triggers = dataset([AppTimeStamp],[Source],'VarNames',{'AppTimestamp','Source'})
 triggers_sort = sortrows(triggers,1);
 %% 3) Fusion of INS and Posi
 % Number of observations
-numobs = length(Step_events);
+Num_steps = length(Step_events);
 
-p_hat = zeros(2, numobs); % X,V
+p_hat = zeros(2, Num_steps); % X,V
 % xhat(:,1) = [Posi.X(1),Posi.Y(1)];
-% p_hat(:,1) = [0,0];
-p_hat(:,1) = [StrideLengths(1)*cos(Thetas(1)),StrideLengths(1)*sin(Thetas(1))];
-for k = 2:length(Acc.AppTimestamp(Step_events))
-    A = [1 0;...
-        0 1];
-    B = [StrideLengths(k) 0; ...
-        0, StrideLengths(k)];
-    U = StrideLengths(k) * [cos(Thetas(k)); sin(Thetas(k))];
-    p_hat(:,k) = A * p_hat(:,k-1) + U;
+p_hat(:,1) = [0,0];
+% p_hat(:,1) = [StrideLengths(1)*cos(Thetas(1)),StrideLengths(1)*sin(Thetas(1))];
+for k = 1:length(triggers_sort)
+    trigger = triggers_sort(k,2);
+    switch trigger{1,1}
+        case 'Acce'
+            % prediction
+            if ~exist('index_p')
+                index_p = 1;
+                p_hat(:,1) = [0,0];
+                
+                continue;
+            end
+            index_p = index_p + 1;
+            A = [1 0;...
+                0 1];
+            B = [StrideLengths(index_p) 0; ...
+                0, StrideLengths(index_p)];
+            U = StrideLengths(index_p) * [cos(Thetas(index_p)); sin(Thetas(index_p))];
+            p_hat(:,index_p) = A * p_hat(:,index_p - 1) + U;
+        otherwise
+            % update
+            continue
+    end
 end
-p_hat = [[0;0] p_hat];
+% p_hat = [[0;0] p_hat];
 
 % Positions(k,1)=Positions(k-1,1)+ StrideLengths(k)*cos(Thetas(k)); % X
 % Positions(k,2)=Positions(k-1,2)+ StrideLengths(k)*sin(Thetas(k)); % Y
@@ -100,3 +115,6 @@ clf
 plot(p_hat(1,:),p_hat(2,:))
 hold on 
 plot(Positions(:,1),Positions(:,2))
+plot(Posi.X - Posi.X(1),Posi.Y - Posi.Y(1))
+legend({'p_[hat]','IMU','Campaign6'})
+
