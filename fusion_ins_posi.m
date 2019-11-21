@@ -64,11 +64,11 @@ idx_fig=200;
 AppTimeStamp = []; Source = [];
 if (exist('Acc','var'))
     AppTimeStamp = [AppTimeStamp; Acc.AppTimestamp(Step_events)];
-    Source = [Source; repmat({'Acce'},length(Acc.AppTimestamp(Step_events)),1)];
+    Source = [Source; repmat(1,length(Acc.AppTimestamp(Step_events)),1)]; % 1 = A
 end
 if (exist('Posi','var'))
     AppTimeStamp = [AppTimeStamp; Posi.Timestamp];
-    Source = [Source; repmat({'Posi'},length(Posi.Timestamp),1)];
+    Source = [Source; repmat(16,length(Posi.Timestamp),1)]; % 16 = P
 end
 % triggers is made up of AppTimeStamp and Source
 % AppTimeStamp: TimeStamp from GetSensorData logfile, only for position
@@ -76,13 +76,13 @@ end
 % Source: Sensor which provides recording at that time
 triggers = dataset([AppTimeStamp],[Source],'VarNames',{'AppTimestamp','Source'});
 triggers_sort = sortrows(triggers,1);
+triggers_sort_posi = find(double(triggers_sort(:,2))==16); % 16 = Posi
 %% 3) Fusion of INS and Posi
 % Number of observations
 Num_steps = length(Step_events);
 
-p_hat = zeros(2, Num_steps); % X,V
+p_hat = zeros(2,Num_steps); % X,V
 % xhat(:,1) = [Posi.X(1),Posi.Y(1)];
-p_hat(:,1) = [0,0];
 % transformation matrix
 A = [1 0;...
     0 1];
@@ -91,28 +91,47 @@ A = [1 0;...
 P = ones(size(A));
 
 % Observation Model
-C = [StrideLengths; Thetas'];
+C = eye(size(A));
+
+% Measurement
+Z = [Posi.X-Posi.X(1) Posi.Y-Posi.Y(1)]';
+
+% Measurement covarience
+R = [cov(StrideLengths) 0 ;
+    0 cov(Thetas)];
+
+% Process Covarience
+Q = zeros(size(A));
+
+I = eye(size(A));
+
+index_acce = 0;
+index_posi = 1;
 % p_hat(:,1) = [StrideLengths(1)*cos(Thetas(1)),StrideLengths(1)*sin(Thetas(1))];
-for k = 1:length(triggers_sort)
+for k = 2:length(triggers_sort) % first trigger is posi but there is no estimate to update at this time
     trigger = triggers_sort(k,2);
     switch trigger{1,1}
         case 'Acce'
             % prediction
-            if ~exist('index_p')
-                index_p = 1;
-                p_hat(:,1) = [0,0];
-                P = ones(size(A));
-                continue;
+            index_acce = index_acce + 1;
+            if index_acce == 1
+                p_hat(:,1) = [StrideLengths(1)*cos(Thetas(1));StrideLengths(1)*sin(Thetas(1))]; 
+            else
+                B = [StrideLengths(index_acce) 0; ...
+                    0, StrideLengths(index_acce)];
+                U = StrideLengths(index_acce) * [cos(Thetas(index_acce)); sin(Thetas(index_acce))];
+                p_hat(:,index_acce) = A * p_hat(:,index_acce - 1) ...
+                    + U;
+                P = A * P * A' + Q;
             end
-            index_p = index_p + 1;
             
-            B = [StrideLengths(index_p) 0; ...
-                0, StrideLengths(index_p)];
-            U = StrideLengths(index_p) * [cos(Thetas(index_p)); sin(Thetas(index_p))];
-            p_hat(:,index_p) = A * p_hat(:,index_p - 1) + U;
         otherwise
             % update
-            continue
+            K         = P  * C' / (C * P * C' + R);
+            P         = (I - K * C) * P;
+            p_hat(:,index_acce) = p_hat(:,index_acce) ...
+                + K * (Z(:,index_posi) - C * p_hat(:,index_acce));
+            index_posi = index_posi + 1;
     end
 end
 % p_hat = [[0;0] p_hat];
@@ -120,9 +139,17 @@ end
 % Positions(k,1)=Positions(k-1,1)+ StrideLengths(k)*cos(Thetas(k)); % X
 % Positions(k,2)=Positions(k-1,2)+ StrideLengths(k)*sin(Thetas(k)); % Y
 clf
+plot(Positions(:,1),Positions(:,2))
+hold on
 plot(p_hat(1,:),p_hat(2,:))
 hold on 
-plot(Positions(:,1),Positions(:,2))
 plot(Posi.X - Posi.X(1),Posi.Y - Posi.Y(1))
-legend({'p_[hat]','IMU','Campaign6'})
+legend({'IMU','p_[hat]','Campaign6'})
 
+%% 4) Fusion with frequent data
+X = []; Y = [];
+for k = 2:length(Posi.X)
+X = [X linspace(Posi.X(k),Posi.X(k-1),triggers_sort_posi(k) - triggers_sort_posi(k-1))];
+Y = [Y linspace(Posi.Y(k),Posi.Y(k-1),triggers_sort_posi(k) - triggers_sort_posi(k-1))];
+end
+plot(X,Y,'or')
