@@ -83,6 +83,15 @@ Num_steps = length(Step_events);
 p_hat = zeros(2, Num_steps); % X,V
 % xhat(:,1) = [Posi.X(1),Posi.Y(1)];
 p_hat(:,1) = [0,0];
+% transformation matrix
+A = [1 0;...
+    0 1];
+
+% Prcess Covarience
+P = ones(size(A));
+
+% Observation Model
+C = [StrideLengths; Thetas'];
 % p_hat(:,1) = [StrideLengths(1)*cos(Thetas(1)),StrideLengths(1)*sin(Thetas(1))];
 for k = 1:length(triggers_sort)
     trigger = triggers_sort(k,2);
@@ -92,12 +101,11 @@ for k = 1:length(triggers_sort)
             if ~exist('index_p')
                 index_p = 1;
                 p_hat(:,1) = [0,0];
-                
+                P = ones(size(A));
                 continue;
             end
             index_p = index_p + 1;
-            A = [1 0;...
-                0 1];
+            
             B = [StrideLengths(index_p) 0; ...
                 0, StrideLengths(index_p)];
             U = StrideLengths(index_p) * [cos(Thetas(index_p)); sin(Thetas(index_p))];
