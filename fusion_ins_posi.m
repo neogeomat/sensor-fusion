@@ -120,8 +120,8 @@ for k = 2:length(triggers_sort) % first trigger is posi but there is no estimate
             p_hat(:,index_acce) = p_hat(:,index_acce) ...
                 + K * (Z(:,index_posi) - C * p_hat(:,index_acce));
             index_posi = index_posi + 1;
-            plot(Z(1,1:index_posi),Z(2,1:index_posi),'g-o');
-            plot(p_hat(1,1:index_acce),p_hat(2,1:index_acce),'b:o');
+            plot(Z(1,index_posi-1:index_posi),Z(2,index_posi-1:index_posi),'g-o');
+            plot(p_hat(1,index_acce),p_hat(2,index_acce),'b:o');
             hold on
     end
     pause(0.1)
@@ -133,12 +133,26 @@ hold on
 plot(p_hat(1,:),p_hat(2,:))
 hold on 
 plot(Posi.X - Posi.X(1),Posi.Y - Posi.Y(1))
-legend({'IMU','p_[hat]','Campaign6'})
+legend({'IMU','fusion IMU POSI','Campaign6'})
 
 %% 4) Fusion with frequent data
-X = []; Y = [];
+fX = []; fY = [];
 for k = 2:length(Posi.X)
-X = [X linspace(Posi.X(k),Posi.X(k-1),triggers_sort_posi(k) - triggers_sort_posi(k-1))];
-Y = [Y linspace(Posi.Y(k),Posi.Y(k-1),triggers_sort_posi(k) - triggers_sort_posi(k-1))];
+fX = [fX linspace(Z(1,k),Z(1,k-1),triggers_sort_posi(k) - triggers_sort_posi(k-1))];
+fY = [fY linspace(Z(2,k),Z(2,k-1),triggers_sort_posi(k) - triggers_sort_posi(k-1))];
 end
-plot(X,Y,'or')
+plot(fX,fY,'or')
+
+% kalman once more
+numObs = length(fX);
+fp_hat= zeros(2,numObs);
+A = [1 0;...
+    0 1]; % transformation matrix
+P = ones(size(A)); % Prcess Covarience
+C = eye(size(A));% Observation Model
+Z = [X Y]';
+R = [cov(StrideLengths) 0 ;
+    0 cov(Thetas)];
+U = [cos(Thetas)' .* StrideLengths; sin(Thetas)'.*StrideLengths];
+Q = zeros(size(A)); % Process Covarience
+I = eye(size(A));
