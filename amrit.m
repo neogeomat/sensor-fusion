@@ -65,6 +65,8 @@ data = loadTrainData();
 dataTrainWifi.rss = data(:,1:180);
 dataTrainWifi.coords = data(:,[182 181 183]);
 dataTrainMerged = mergedata(dataTrainWifi,6);
+% deal with not seen AP
+dataTrainWifi.rss(dataTrainWifi.rss==100) = -110;
 
 %% get list of MACs in Wifi Training Data
 fid = fopen('wifi_datasets\tst01-mac-head.csv');
@@ -95,11 +97,11 @@ for w = 1:length(Wifi)
     
     dataTestWifi(tidx,midx) = Wifi.RSS(w);
 end
-
+dataTestWifi(dataTestWifi==0) = -110;
 %% kNN method estimation
 knnValue = 9;    % Number of neighbors
-predictionKnn = kNNEstimation(dataTrainMerged.rss, dataTestWifi, dataTrainMerged.coords, knnValue);
-Wifiplots(dataTrainMerged.rss, dataTestWifi, dataTrainMerged.coords, knnValue);
+predictionKnn = kNNEstimation(dataTrainWifi.rss, dataTestWifi, dataTrainWifi.coords, knnValue);
+Wifiplots(dataTrainWifi.rss, dataTestWifi, dataTrainWifi.coords, knnValue);
 %% 4) Get BLE positions using WC
 BleBeacons = csvread('ble\BLEbeacons.csv',1,0);
 BleBeacons = dataset({BleBeacons 'X','Y','Major','Minor'});
