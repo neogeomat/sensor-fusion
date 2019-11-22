@@ -2,7 +2,6 @@ close all, clc, clear;
 [~,~,~,~,Wifi,~,~]=ReadLogFile('library_campaign_6_with_german.txt','smartphone',1);
 %% 3) Get wifi positions using k-mean
 %% load Wifi training data
-addpath('wifi_datasets');
 data = loadTrainData();
 dataTrainWifi.rss = data(:,1:180);
 dataTrainWifi.coords = data(:,[182 181 183]); % in the csv files, X and Y are swapped: X = 182, Y = 181,Floor = 183
@@ -11,7 +10,7 @@ dataTrainMerged = mergedata(dataTrainWifi,6);
 dataTrainWifi.rss(dataTrainWifi.rss==100) = -110;
 
 %% get list of MACs in Wifi Training Data
-fid = fopen('wifi_datasets\tst01-mac-head.csv');
+fid = fopen('tst01-mac-head.csv');
 hdr = fgetl(fid);
 fclose(fid);
 macs = regexp(hdr,',','split');
