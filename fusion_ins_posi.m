@@ -78,40 +78,27 @@ triggers = dataset([AppTimeStamp],[Source],'VarNames',{'AppTimestamp','Source'})
 triggers_sort = sortrows(triggers,1);
 triggers_sort_posi = find(double(triggers_sort(:,2))==16); % 16 = Posi
 %% 3) Fusion of INS and Posi
-% Number of observations
-Num_steps = length(Step_events);
-
+Num_steps = length(Step_events); % Number of observations
 p_hat = zeros(2,Num_steps); % X,V
-% xhat(:,1) = [Posi.X(1),Posi.Y(1)];
-% transformation matrix
 A = [1 0;...
-    0 1];
-
-% Prcess Covarience
-P = ones(size(A));
-
-% Observation Model
-C = eye(size(A));
-
-% Measurement
-Z = [Posi.X-Posi.X(1) Posi.Y-Posi.Y(1)]';
-
-% Measurement covarience
+    0 1]; % transformation matrix
+P = ones(size(A)); % Prcess Covarience
+C = eye(size(A));% Observation Model
+Z = [Posi.X-Posi.X(1) Posi.Y-Posi.Y(1)]';% Measurement
 R = [cov(StrideLengths) 0 ;
-    0 cov(Thetas)];
-
-% Process Covarience
-Q = zeros(size(A));
-
+    0 cov(Thetas)]; % Measurement covarience
+Q = zeros(size(A)); % Process Covarience
 I = eye(size(A));
 
 index_acce = 0;
 index_posi = 1;
 % p_hat(:,1) = [StrideLengths(1)*cos(Thetas(1)),StrideLengths(1)*sin(Thetas(1))];
+clf
+axis equal
 for k = 2:length(triggers_sort) % first trigger is posi but there is no estimate to update at this time
     trigger = triggers_sort(k,2);
-    switch trigger{1,1}
-        case 'Acce'
+    switch trigger{1,1} % trigger is cell array from dataset
+        case 1 % 1 = 'Acce'
             % prediction
             index_acce = index_acce + 1;
             if index_acce == 1
@@ -124,7 +111,8 @@ for k = 2:length(triggers_sort) % first trigger is posi but there is no estimate
                     + U;
                 P = A * P * A' + Q;
             end
-            
+            plot(p_hat(1,1:index_acce),p_hat(2,1:index_acce),'r-o');
+            hold on
         otherwise
             % update
             K         = P  * C' / (C * P * C' + R);
@@ -132,12 +120,13 @@ for k = 2:length(triggers_sort) % first trigger is posi but there is no estimate
             p_hat(:,index_acce) = p_hat(:,index_acce) ...
                 + K * (Z(:,index_posi) - C * p_hat(:,index_acce));
             index_posi = index_posi + 1;
+            plot(Z(1,1:index_posi),Z(2,1:index_posi),'g-o');
+            plot(p_hat(1,1:index_acce),p_hat(2,1:index_acce),'b:o');
+            hold on
     end
+    pause(0.1)
 end
-% p_hat = [[0;0] p_hat];
 
-% Positions(k,1)=Positions(k-1,1)+ StrideLengths(k)*cos(Thetas(k)); % X
-% Positions(k,2)=Positions(k-1,2)+ StrideLengths(k)*sin(Thetas(k)); % Y
 clf
 plot(Positions(:,1),Positions(:,2))
 hold on
