@@ -12,7 +12,13 @@ disp('Reading Logfile...');% fflush(stdout);
 %[~,~,Acc,Gyr]=ReadLogFile('.\log_files\logfile_3loops_1lateralbackwards.txt','Xsens',1); %ON FOOT %(2 loops + 1 loop lateral/backwards)
 % [Acc,Gyr,~,~]=ReadLogFile('.\log_files\Around living room carpet logfile_2019_10_06_11_31_51.txt','smartphone',1); %ON HAND %(2 loops + 1 loop lateral/backwards)
 % [Acc,Gyr,Ble4,Gnss,Wifi,~,~]=ReadLogFile('.\log_files\library_last_day_collection.txt','smartphone',1);
-[Acc,Gyr,Ble4,Gnss,Wifi,Posi,~,~]=ReadLogFile('.\log_files\library_campaign_6_with_german.txt','smartphone',1);
+
+savefile = 'fusion_ins_posi';
+if isfile([savefile '.mat'])
+    load(savefile);
+else
+    [Acc,Gyr,Ble4,Gnss,Wifi,Posi,~,~]=ReadLogFile('.\log_files\library_campaign_6_with_german.txt','smartphone',1);
+end
 campaign6 = csvread('wifi_datasets\campaign06.csv',1,0);
 campaign6 = dataset({campaign6 'X','Y','Number','Floor'});
 Posi = dataset({Posi 'Timestamp','Counter','X','Y','floorID','BuildingID'});
@@ -156,3 +162,5 @@ R = [cov(StrideLengths) 0 ;
 U = [cos(Thetas)' .* StrideLengths; sin(Thetas)'.*StrideLengths];
 Q = zeros(size(A)); % Process Covarience
 I = eye(size(A));
+
+save(savefile);
