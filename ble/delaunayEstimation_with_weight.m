@@ -31,7 +31,11 @@
 
 function [predictionWW,nearest,ks] = delaunayEstimation_with_weight(bcCoors, data, k)
     savefig = 0;
-    query = data.rss;
+    if(strcmp(class(data),'double'))
+        query = data;
+    else
+        query = data.rss;
+    end
     [queryRows,nBeacons] = size(query);
     
     if (~exist('k','var'))

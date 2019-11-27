@@ -1,5 +1,5 @@
 function Wifiplots(rss, dataTestWifi, coords, knnValue)
-    windows = 1:knnValue; %in seconds
+    windows = 1:knnValue;
     figure('Name','Wifi knn plots')
     for window = windows
         subplot(3,3,window)
@@ -10,7 +10,7 @@ function Wifiplots(rss, dataTestWifi, coords, knnValue)
 %         adjusted_predictonDelaunay = predictionDelaunay;
 %         plot(adjusted_predictonDelaunay(:,1),adjusted_predictonDelaunay(:,2),'k--o')
         hold off
-        title(['k = ',num2str(window),' seconds']) 
+        title(['k = ',num2str(window),'']) 
         axis equal        
     end
 end

@@ -168,7 +168,7 @@ while (~eof)
                  %        "BLE4;0.125;iBeacon;FF:E4:62:05:A6:94;-73;-76;2016;15;b9407f30-f5f8-466e-aff9-25556b57fe6d"
                     cell_array=textscan(linea,'%*s %f %s %s %f','delimiter',';');
 %                     datos(1)=cell_array{1,1}(1); % AppTimestamp
-                    datos.timestamp=cell_array{1,1}(1); % AppTimestamp
+                    datos.TimeStamp=cell_array{1,1}(1); % AppTimestamp
 %                     Beacon_type_str=cell_array{1,2}{1,1}; % Beacon type
                     datos.Beacon_type=cell_array{1,2}{1,1}; % Beacon type
 %                     datos(4)=cell_array{1,4}(1); % RSS
@@ -438,8 +438,8 @@ if ~isempty(Ble4)
     Ble4_idx_Eddystone=find(strcmp(Ble4.Beacon_type,"Eddystone")); % Eddystone1
 %     Ble4_idx_iBeacon=find(double(Ble4(:,2))==1); % iBeacon
     Ble4_idx_iBeacon=find(strcmp(Ble4.Beacon_type,"iBeacon")); % iBeacon
-    plot(Ble4.timestamp(Ble4_idx_Eddystone),Ble4.RSS(Ble4_idx_Eddystone),'b.','MarkerSize',10); hold on;
-    plot(Ble4.timestamp(Ble4_idx_iBeacon),Ble4.RSS(Ble4_idx_iBeacon),'r.','MarkerSize',10);
+    plot(Ble4.TimeStamp(Ble4_idx_Eddystone),Ble4.RSS(Ble4_idx_Eddystone),'b.','MarkerSize',10); hold on;
+    plot(Ble4.TimeStamp(Ble4_idx_iBeacon),Ble4.RSS(Ble4_idx_iBeacon),'r.','MarkerSize',10);
     xlabel('time(s)'); ylabel('RSS (dBm)'); hold off;
     title(['Ble4, Freq.: ',num2str(size(Ble4,1)/double(Ble4(end,1)),'%.1f'),' Hz, Different iBeacons: ',num2str(length(unique(Ble4(Ble4_idx_iBeacon,3)))),' Eddy: ',num2str(length(unique(Ble4(Ble4_idx_Eddystone,3))))]);
     legend({'Ble4-EddyStone','Ble4-iBeacon'});

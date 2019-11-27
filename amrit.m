@@ -8,11 +8,12 @@ format compact
 % Read log_file
 disp('1) Load real data with smart-phone IMU and inspect');% fflush(stdout);
 disp('Reading Logfile...');% fflush(stdout);
-% load IMU read data: Acc,Gyr de Xsens (3 loops)
-%[~,~,Acc,Gyr]=ReadLogFile('.\log_files\logfile_3loops_1lateralbackwards.txt','Xsens',1); %ON FOOT %(2 loops + 1 loop lateral/backwards)
-% [Acc,Gyr,~,~]=ReadLogFile('.\log_files\Around living room carpet logfile_2019_10_06_11_31_51.txt','smartphone',1); %ON HAND %(2 loops + 1 loop lateral/backwards)
-% [Acc,Gyr,Ble4,Gnss,Wifi,~,~]=ReadLogFile('.\log_files\library_last_day_collection.txt','smartphone',1);
-[Acc,Gyr,Ble4,Gnss,Wifi,Posi,~,~]=ReadLogFile('.\log_files\library_campaign_6_with_german.txt','smartphone',1);
+savefile = 'fusion_ins_posi';
+if isfile([savefile '.mat'])
+    load(savefile);
+else
+    [Acc,Gyr,Ble4,Gnss,Wifi,Posi,~,~]=ReadLogFile('.\log_files\library_campaign_6_with_german.txt','smartphone',1);
+end
 campaign6 = csvread('wifi_datasets\campaign06.csv',1,0);
 campaign6 = dataset({campaign6 'X','Y','Number','Floor'});
 Posi = dataset({Posi 'Timestamp','Counter','X','Y','floorID','BuildingID'});
@@ -62,78 +63,55 @@ idx_fig=200;
 disp(['-> TO DO: -Check bias remove effect',...
     '            -Step detection & Stride Length estimation',...
     '            -Position estimation while walking lateral/backwards']);%fflush(stdout);
-
-%% plot velocity
-velocity = StrideLengths'./(Acc.AppTimestamp(Step_events)-Acc.AppTimestamp(1));
-plot(Acc.AppTimestamp(Step_events)-Acc.AppTimestamp(1),StrideLengths')
-plot(velocity)
-%............................................................................................
 %% 3) Get wifi positions using k-mean
-%% load Wifi training data
+% load Wifi training data
 addpath('wifi_datasets');
 dataTrainWifi = loadTrainData();
-dataTrainMerged = mergedata(dataTrainWifi,6);
+dataTrainWifiMerged = mergedata(dataTrainWifi,6);
 % deal with not seen AP
 dataTrainWifi.rss(dataTrainWifi.rss==100) = -110;
 
-%% get list of MACs in Wifi Training Data
-fid = fopen('wifi_datasets\tst01-mac-head.csv');
-hdr = fgetl(fid);
-fclose(fid);
-macs = regexp(hdr,',','split');
-mac_dec = zeros(1,length(macs)-5);
-% for ap = 1:length(macs) - 5
-for mac_idx = 1:(length(macs) -5)
-    MAC_str = macs(mac_idx);
-    MAC_dec_array=sscanf(MAC_str{1,1},'%x:%x:%x:%x:%x:%x');
-    mac_dec(mac_idx) = MAC_dec_array(1)*256^5 ...
-        + MAC_dec_array(2)*256^4 ...
-        + MAC_dec_array(3)*256^3 ...
-        + MAC_dec_array(4)*256^2 ...
-        + MAC_dec_array(5)*256 ...
-        + MAC_dec_array(6);
-end
+% get list of MACs in Wifi Training Data
+file_wifi_macs = 'wifi_datasets\tst01-mac-head.csv';
+wifiMacUnique = getUniqueWifiMac(file_wifi_macs);
 
-%% convert wifi from log file to test data
-% uniqueWifiMac = unique(Wifi.MAC);
-wifiMacUnique = mac_dec;
+% convert wifi from log file to test data
 wifiTimeUnique = unique(Wifi.AppTimestamp);
 dataTestWifi = zeros(length(wifiTimeUnique),length(wifiMacUnique));
 for w = 1:length(Wifi)
-    midx = find(wifiMacUnique == Wifi.MAC(w));
-    tidx = find(wifiTimeUnique == Wifi.AppTimestamp(w));
-    
-    dataTestWifi(tidx,midx) = Wifi.RSS(w);
+    row = find(wifiTimeUnique == Wifi.AppTimestamp(w));
+    col = find(wifiMacUnique == Wifi.MAC(w));
+    dataTestWifi(row,col) = Wifi.RSS(w);
 end
 dataTestWifi(dataTestWifi==0) = -110;
-%% kNN method estimation
+% kNN method estimation
 knnValue = 9;    % Number of neighbors
-predictionKnn = kNNEstimation(dataTrainWifi.rss, dataTestWifi, dataTrainWifi.coords, knnValue);
-Wifiplots(dataTrainWifi.rss, dataTestWifi, dataTrainWifi.coords, knnValue);
+predictionKnn = kNNEstimation(dataTrainWifiMerged.rss, dataTestWifi, dataTrainWifiMerged.coords, 3);
+Wifiplots(dataTrainWifiMerged.rss, dataTestWifi, dataTrainWifiMerged.coords, knnValue);
 %% 4) Get BLE positions using WC
+% read beacons positions and major,minor values
 BleBeacons = csvread('ble\BLEbeacons.csv',1,0);
 BleBeacons = dataset({BleBeacons 'X','Y','Major','Minor'});
-BleBeacons = sortrows(BleBeacons,4);
-%% convert wifi from log file to dataTestBle
+BleBeacons = sortrows(BleBeacons,4); % sort by minor value
+% convert Ble4 from log file to dataTestBle
 addpath('ble');
 Ble4 = Ble4(string(Ble4.UUID) == 'A9C04048-A71E-42B5-B569-13B5AC77B618',:); % filter readings that are from beacons deployed by us, discard other BLE sources
 window = 6; %in seconds
 dataTestBleCount = zeros(ceil(max(Ble4.timestamp)/window),length(BleBeacons.Minor));
 dataTestBleSum = zeros(ceil(max(Ble4.timestamp)/window),length(BleBeacons.Minor));
 for w = 1:length(Ble4.RSS)
-    midx = Ble4.MinorID(w);
-    tidx = ceil(Ble4.timestamp(w)/window);
+    col = Ble4.MinorID(w);
+    row = ceil(Ble4.timestamp(w)/window);
     
-    dataTestBleSum(tidx,midx) = dataTestBleSum(tidx,midx) + Ble4.RSS(w);
-    dataTestBleCount(tidx,midx) = dataTestBleCount(tidx,midx) + 1;
+    dataTestBleSum(row,col) = dataTestBleSum(row,col) + Ble4.RSS(w);
+    dataTestBleCount(row,col) = dataTestBleCount(row,col) + 1;
 end
 dataTestBle = dataTestBleSum ./ dataTestBleCount;
 dataTestBle(dataTestBle == 0) = NaN;
 bcCoords = double(BleBeacons(:,[1 2]));
 predictionWC = wCEstimation(bcCoords,dataTestBle,3);
-dataTestBle_del.rss = dataTestBle;
 predictionDelaunay = delaunayEstimation_with_weight(...
-    bcCoords,dataTestBle_del,3);
+    bcCoords,dataTestBle,3);
 %% 5) Plot different results 
 clf;
 % campaign6.X = campaign6.X - min(campaign6.X);
@@ -162,8 +140,8 @@ plot(adjusted_predictonWC(:,1),adjusted_predictonWC(:,2),'r--o')
 %% test Ble in different window sizes
 Bleplots(bcCoords,Ble4,campaign6)
 %% test wifi in different k values
-Wifiplots(dataTrainMerged.rss, dataTestWifi,...
-    dataTrainMerged.coords, knnValue);
+Wifiplots(dataTrainWifiMerged.rss, dataTestWifi,...
+    dataTrainWifiMerged.coords, knnValue);
 %%
 adjusted_predictonDelaunay = predictionDelaunay %- min(predictionDelaunay);
 plot(adjusted_predictonDelaunay(:,1),adjusted_predictonDelaunay(:,2),'k--o')

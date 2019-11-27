@@ -127,19 +127,21 @@ for k = 2:length(triggers_sort) % first trigger is posi but there is no estimate
                 + K * (Z(:,index_posi) - C * p_hat(:,index_acce));
             index_posi = index_posi + 1;
             plot(Z(1,index_posi-1:index_posi),Z(2,index_posi-1:index_posi),'g-o');
-            plot(p_hat(1,index_acce),p_hat(2,index_acce),'b:o');
+            plot([Z(1,index_posi);p_hat(1,index_acce)'],...
+                [Z(2,index_posi);p_hat(2,index_acce)'],'b:o');
+%             plot(p_hat(1,index_acce),p_hat(2,index_acce),'b:o');
             hold on
     end
     pause(0.1)
 end
-
-clf
-plot(Positions(:,1),Positions(:,2))
-hold on
-plot(p_hat(1,:),p_hat(2,:))
-hold on 
-plot(Posi.X - Posi.X(1),Posi.Y - Posi.Y(1))
-legend({'IMU','fusion IMU POSI','Campaign6'})
+% 
+% clf
+% plot(Positions(:,1),Positions(:,2))
+% hold on
+% plot(p_hat(1,:),p_hat(2,:))
+% hold on 
+% plot(Posi.X - Posi.X(1),Posi.Y - Posi.Y(1))
+% legend({'IMU','fusion IMU POSI','Campaign6'})
 
 %% 4) Fusion with frequent data
 fX = []; fY = [];
@@ -147,7 +149,7 @@ for k = 2:length(Posi.X)
 fX = [fX linspace(Z(1,k),Z(1,k-1),triggers_sort_posi(k) - triggers_sort_posi(k-1))];
 fY = [fY linspace(Z(2,k),Z(2,k-1),triggers_sort_posi(k) - triggers_sort_posi(k-1))];
 end
-plot(fX,fY,'or')
+% plot(fX,fY,'or')
 
 % kalman once more
 numObs = length(fX);
